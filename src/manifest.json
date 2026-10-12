@@ -11,7 +11,19 @@
   "host_permissions": [
     "https://calendar.google.com/*"
   ],
+  "icons": {
+    "16": "icons/tree-group.svg",
+    "32": "icons/tree-group.svg",
+    "48": "icons/tree-group.svg",
+    "128": "icons/tree-group.svg"
+  },
   "action": {
+    "default_icon": {
+      "16": "icons/tree-group.svg",
+      "32": "icons/tree-group.svg",
+      "48": "icons/tree-group.svg",
+      "128": "icons/tree-group.svg"
+    },
     "default_popup": "popup.html",
     "default_title": "Tree-Group"
   },
