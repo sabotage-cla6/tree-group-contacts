@@ -86,9 +86,7 @@ function findGuestInputElement(scope = null) {
     ['input[aria-label="Add guests"]', 120],
     ['input[placeholder*="ゲストを追加"]', 110],
     ['input[placeholder*="Add guests"]', 110],
-    ['div[data-aria-label="ゲストを追加"] input', 105],
-    ['input.Fgl6fe-fmcmS-wGMbrd', 90],
-    ['input[jsname="YPqjbf"]', 85]
+    ['div[data-aria-label="ゲストを追加"] input', 105]
   ];
 
   const candidates = new Map();
