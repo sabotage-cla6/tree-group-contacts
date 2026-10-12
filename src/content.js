@@ -216,7 +216,7 @@ function extractGuestsFromPage() {
 
 function extractEmailAddress(value) {
   const entry = String(value || "").trim();
-  const match = entry.match(/^"([^"]*)"\s*<([^<>]+)>$/);
+  const match = entry.match(/^"((?:\\.|[^"\\])*)"\s*<([^<>]+)>$/);
   return match ? match[2].trim() : entry;
 }
 
