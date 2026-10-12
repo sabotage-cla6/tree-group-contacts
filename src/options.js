@@ -25,7 +25,7 @@ let selectionAnchorId = null;
     const node = findNode(groupTree, selectedNodeId);
     if (!node) return;
     node.name = document.getElementById("groupName").value.trim() || "無題のグループ";
-    node.emails = document.getElementById("groupEmails").value.split(/[\n,]/).map(e => e.trim()).filter(Boolean);
+    node.emails = parseMemberEntries(document.getElementById("groupEmails").value);
     await saveAndRefresh();
     showToast("保存しました");
   });
@@ -200,6 +200,22 @@ let selectionAnchorId = null;
     reader.readAsText(file);
   });
 });
+
+function parseMemberEntries(text) {
+  return text.split(/[\n,]/).map(value => {
+    const entry = value.trim();
+    if (!entry) return "";
+    const parsed = parseMemberEntry(entry);
+    return parsed.name ? \`"\${parsed.name}"<\${parsed.email}>\` : parsed.email;
+  }).filter(Boolean);
+}
+
+function parseMemberEntry(value) {
+  const entry = String(value || "").trim();
+  const match = entry.match(/^"([^"]*)"\s*<([^<>]+)>$/);
+  if (match) return { name: match[1].trim(), email: match[2].trim() };
+  return { name: "", email: entry };
+}
 
 function getDefaultData() {
   return [
