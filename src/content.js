@@ -17,10 +17,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 async function insertGuests(emails) {
   const uniqueEmails = Array.from(new Set((emails || []).filter(isValidEmailOrCalendarId)));
   let insertedCount = 0;
+  const initialGuestInput = findGuestInputElement();
+  if (!initialGuestInput) return 0;
+
+  // 詳細ダイアログ内で開始した場合、処理中も同じダイアログ内だけを操作する。
+  // ダイアログが閉じられたらトップ画面の別入力欄へ続けて入力しない。
+  const editorDialog = initialGuestInput.closest('[role="dialog"]');
 
   for (const email of uniqueEmails) {
-    // メンバー追加後にDOMが差し替わる画面があるため、毎回入力欄を探し直す。
-    const guestInput = findGuestInputElement();
+    if (editorDialog && (!editorDialog.isConnected || !isVisibleElement(editorDialog))) break;
+    // ゲスト追加後に入力欄が差し替わる場合があるため、同じ編集画面の中で探し直す。
+    const guestInput = findGuestInputElement(editorDialog || document);
     if (!guestInput) break;
 
     guestInput.focus();
@@ -71,33 +78,58 @@ function isVisibleElement(el) {
   return Boolean(el && (el.offsetWidth > 0 || el.offsetHeight > 0 || el.getClientRects().length > 0));
 }
 
-// 現在表示されている画面のゲスト入力欄を優先して検出する。
-function findGuestInputElement() {
+// 予定のタイトル欄などに誤入力しないよう、ゲスト欄として識別できる入力欄だけを対象にする。
+// トップ画面の簡易作成欄では、提示されたDOMの div[jsname="ZKadSc"] がゲスト入力領域を示す。
+function findGuestInputElement(scope = null) {
   const selectors = [
-    ['input[aria-label="ユーザーを検索"]', 100],
-    ['div[role="dialog"] input[aria-label="ユーザーを検索"]', 105],
-    ['input[aria-label="ゲストを追加"]', 95],
-    ['input[aria-label="Add guests"]', 95],
-    ['input[placeholder*="ゲストを追加"]', 90],
-    ['input[placeholder*="Add guests"]', 90],
-    ['div[data-aria-label="ゲストを追加"] input', 85],
-    ['input.Fgl6fe-fmcmS-wGMbrd', 75],
-    ['input[jsname="YPqjbf"]', 75],
-    ['input[type="email"]', 10]
+    ['div[jsname="ZKadSc"] input[aria-label="ユーザーを検索"]', 150],
+    ['input[aria-label="ゲストを追加"]', 120],
+    ['input[aria-label="Add guests"]', 120],
+    ['input[placeholder*="ゲストを追加"]', 110],
+    ['input[placeholder*="Add guests"]', 110],
+    ['div[data-aria-label="ゲストを追加"] input', 105],
+    ['input[aria-label="ユーザーを検索"]', 95],
+    ['input.Fgl6fe-fmcmS-wGMbrd', 80],
+    ['input[jsname="YPqjbf"]', 75]
   ];
 
   const candidates = new Map();
+  const searchRoot = scope || document;
   selectors.forEach(([selector, score]) => {
-    document.querySelectorAll(selector).forEach(el => {
-      if (!isVisibleElement(el)) return;
-      const nextScore = score + (el === document.activeElement ? 200 : 0)
-        + (el.closest('[role="dialog"]') ? 15 : 0);
+    searchRoot.querySelectorAll(selector).forEach(el => {
+      if (!isVisibleElement(el) || isClearlyNotGuestInput(el)) return;
+
+      // 汎用的なGoogleカレンダーの入力欄は、予定編集領域にある場合だけ候補にする。
+      const isTopPageGuestField = Boolean(el.matches('div[jsname="ZKadSc"] input[aria-label="ユーザーを検索"]'));
+      const isSpecificGuestField = isTopPageGuestField || /ゲストを追加|add guests/i.test([
+        el.getAttribute('aria-label') || '',
+        el.getAttribute('placeholder') || '',
+        el.parentElement?.getAttribute('data-aria-label') || ''
+      ].join(' '));
+      const inDialog = Boolean(el.closest('[role="dialog"]'));
+      const inEventEditor = Boolean(el.closest('[data-eventid], [role="dialog"], [aria-label*="予定"], [aria-label*="event"]'));
+      const isFocused = el === document.activeElement;
+
+      if (!isSpecificGuestField && !inEventEditor && !inDialog && !isFocused) return;
+
+      const nextScore = score + (isFocused ? 200 : 0) + (inDialog ? 20 : 0);
       candidates.set(el, Math.max(candidates.get(el) || 0, nextScore));
     });
   });
 
   return Array.from(candidates.entries())
     .sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+}
+
+function isClearlyNotGuestInput(el) {
+  const label = [
+    el.getAttribute('aria-label'),
+    el.getAttribute('placeholder'),
+    el.getAttribute('name'),
+    el.getAttribute('data-placeholder')
+  ].filter(Boolean).join(' ').toLowerCase();
+
+  return /タイトル|title|場所|location|説明|description|検索カレンダー|search calendar/.test(label);
 }
 
 // 入力したメールアドレスと一致する候補を探し、候補選択でユーザーを確定する。

@@ -16,30 +16,36 @@
   </header>
 
   <main class="options-layout">
-    <!-- 左ペイン: グループ階層ツリー -->
     <section class="left-pane">
       <div class="pane-header">
         <h3>グループ階層</h3>
         <button id="addRootGroupBtn" class="btn small primary">+ ルートグループ追加</button>
       </div>
-      <div id="treeView" class="tree-view"></div>
+      <div class="tree-toolbar">
+        <p class="tree-help">クリックで選択 / Ctrl・⌘で複数選択 / Shiftで範囲選択。グループをドラッグして階層を変更できます。</p>
+        <label class="move-target-label" for="moveTargetSelect">選択したグループの移動先</label>
+        <div class="move-controls">
+          <select id="moveTargetSelect" class="move-target-select" aria-label="選択したグループの移動先">
+            <option value="">ルート階層（サブグループから外す）</option>
+          </select>
+          <button id="moveSelectedBtn" class="btn outline small" disabled>移動</button>
+        </div>
+        <p id="selectionCount" class="selection-count" aria-live="polite">選択中: 0件</p>
+      </div>
+      <div id="treeView" class="tree-view" aria-label="グループ階層"></div>
     </section>
 
-    <!-- 右ペイン: 選択中のグループ詳細編集 -->
     <section class="right-pane">
       <div id="editorContainer" class="editor-card hidden">
         <h3>グループ情報の編集</h3>
-        
         <div class="form-group">
           <label for="groupName">グループ名</label>
           <input type="text" id="groupName" class="input-text" placeholder="例: 開発部">
         </div>
-
         <div class="form-group">
           <label for="groupEmails">メールアドレス / カレンダーID <span class="label-note">(改行またはカンマ区切り)</span></label>
           <textarea id="groupEmails" rows="10" class="textarea-emails" placeholder="alice@example.com&#10;bob@example.com"></textarea>
         </div>
-
         <div class="pane-actions">
           <button id="deleteGroupBtn" class="btn danger">このグループを削除</button>
           <div class="right-actions">
@@ -48,15 +54,11 @@
           </div>
         </div>
       </div>
-
-      <div id="emptyNotice" class="empty-notice">
-        👈 左ペインから編集したいグループを選択してください。
-      </div>
+      <div id="emptyNotice" class="empty-notice">👈 左ペインから編集したいグループを選択してください。</div>
     </section>
   </main>
 
-  <div id="toast" class="toast"></div>
-
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <script src="options.js"></script>
 </body>
 </html>
