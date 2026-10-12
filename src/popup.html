@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ゲスト入力ヘルパー</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="popup-body">
+  <div class="popup-container">
+    <h3>👥 ゲストグループ選択</h3>
+    
+    <div id="treeContainer" class="tree-container">
+      <!-- 階層Treeが動的に生成されます -->
+    </div>
+
+    <div class="button-group">
+      <button id="addGuestsBtn" class="btn primary">選択メンバーをゲストに設定</button>
+      <div class="button-group-row">
+        <button id="copyGuestsBtn" class="btn secondary">画面のゲストアドレスをコピー</button>
+        <button id="openOptionsBtn" class="btn outline">⚙️ グループ編集</button>
+      </div>
+    </div>
+
+    <div id="statusMessage" class="status-message"></div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

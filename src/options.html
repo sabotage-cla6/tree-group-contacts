@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>グループ登録画面 - ゲスト入力ヘルパー</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="options-body">
+  <header class="options-header">
+    <h2>⚙️ グループ登録・編集画面</h2>
+    <div class="header-actions">
+      <button id="exportBtn" class="btn outline small">📥 エクスポート (JSON)</button>
+      <button id="importBtn" class="btn outline small">📤 インポート (JSON)</button>
+      <input type="file" id="importFileInput" accept=".json" style="display: none;">
+    </div>
+  </header>
+
+  <main class="options-layout">
+    <!-- 左ペイン: グループ階層ツリー -->
+    <section class="left-pane">
+      <div class="pane-header">
+        <h3>グループ階層</h3>
+        <button id="addRootGroupBtn" class="btn small primary">+ ルートグループ追加</button>
+      </div>
+      <div id="treeView" class="tree-view"></div>
+    </section>
+
+    <!-- 右ペイン: 選択中のグループ詳細編集 -->
+    <section class="right-pane">
+      <div id="editorContainer" class="editor-card hidden">
+        <h3>グループ情報の編集</h3>
+        
+        <div class="form-group">
+          <label for="groupName">グループ名</label>
+          <input type="text" id="groupName" class="input-text" placeholder="例: 開発部">
+        </div>
+
+        <div class="form-group">
+          <label for="groupEmails">メールアドレス / カレンダーID <span class="label-note">(改行またはカンマ区切り)</span></label>
+          <textarea id="groupEmails" rows="10" class="textarea-emails" placeholder="alice@example.com&#10;bob@example.com"></textarea>
+        </div>
+
+        <div class="pane-actions">
+          <button id="deleteGroupBtn" class="btn danger">このグループを削除</button>
+          <div class="right-actions">
+            <button id="addChildGroupBtn" class="btn outline">+ サブグループ追加</button>
+            <button id="saveChangesBtn" class="btn primary">変更を保存</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="emptyNotice" class="empty-notice">
+        👈 左ペインから編集したいグループを選択してください。
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="options.js"></script>
+</body>
+</html>
