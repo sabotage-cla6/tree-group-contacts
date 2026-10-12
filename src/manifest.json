@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Google Calendar ゲスト入力ヘルパー",
+  "name": "Tree-Group",
   "version": "1.0.0",
-  "description": "Googleカレンダーのゲスト入力を支援するChrome拡張機能。階層グループ管理、一括設定、ゲストアドレスコピー機能を搭載。",
+  "description": "Googleの連絡先を階層構造を持ったグループとして管理するための拡張機能。現時点では、カレンダーへのゲストの入力のヘルパーとして機能する。今後はコンタクトをグループとして管理するためにラベル設定などの機能を追加予定。",
   "permissions": [
     "storage",
     "activeTab",
@@ -13,7 +13,7 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "ゲスト入力ヘルパー"
+    "default_title": "Tree-Group"
   },
   "options_ui": {
     "page": "options.html",
