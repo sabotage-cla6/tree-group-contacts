@@ -98,33 +98,49 @@ function renderTree(nodes, container) {
   nodes.forEach(node => ul.appendChild(createTreeNodeElement(node)));
   container.appendChild(ul);
 
-  // チェックボックスの連動処理
-  container.addEventListener("change", (e) => {
-    if (e.target.type === "checkbox") {
-      const li = e.target.closest("li");
-      const isChecked = e.target.checked;
-      li.querySelectorAll("input[type='checkbox']").forEach(cb => cb.checked = isChecked);
+  container.addEventListener("change", (event) => {
+    const target = event.target;
+    if (target.matches(".group-checkbox")) {
+      const li = target.closest("li");
+      li.querySelectorAll(".group-checkbox, .email-checkbox").forEach(checkbox => {
+        checkbox.checked = target.checked;
+        checkbox.indeterminate = false;
+      });
+      syncAncestorGroups(li.parentElement?.closest("li") || null);
+    } else if (target.matches(".email-checkbox")) {
+      syncAncestorGroups(target.closest("li"));
     }
   });
 
-  // 折りたたみトグルのクリック処理
-  container.addEventListener("click", (e) => {
-    if (e.target.classList.contains("toggle-btn")) {
-      const parentLi = e.target.closest("li");
-      const childUl = parentLi.querySelector("ul");
+  container.addEventListener("click", (event) => {
+    if (event.target.classList.contains("toggle-btn")) {
+      const childUl = event.target.closest("li").querySelector(":scope > ul");
       if (childUl) {
         childUl.classList.toggle("collapsed");
-        e.target.textContent = childUl.classList.contains("collapsed") ? "▶" : "▼";
+        event.target.textContent = childUl.classList.contains("collapsed") ? "▶" : "▼";
       }
     }
   });
+}
+
+function syncAncestorGroups(startLi) {
+  let li = startLi;
+  while (li) {
+    const groupCheckbox = li.querySelector(":scope > .tree-row .group-checkbox");
+    if (groupCheckbox) {
+      const emailCheckboxes = Array.from(li.querySelectorAll(".email-checkbox"));
+      const checkedCount = emailCheckboxes.filter(checkbox => checkbox.checked).length;
+      groupCheckbox.checked = emailCheckboxes.length > 0 && checkedCount === emailCheckboxes.length;
+      groupCheckbox.indeterminate = checkedCount > 0 && checkedCount < emailCheckboxes.length;
+    }
+    li = li.parentElement?.closest("li") || null;
+  }
 }
 
 function createTreeNodeElement(node) {
   const li = document.createElement("li");
   const row = document.createElement("div");
   row.className = "tree-row";
-
   const hasChildren = node.children && node.children.length > 0;
 
   if (hasChildren) {
@@ -138,15 +154,33 @@ function createTreeNodeElement(node) {
     row.appendChild(spacer);
   }
 
-  const label = document.createElement("label");
-  const checkbox = document.createElement("input");
-  checkbox.type = "checkbox";
-  checkbox.dataset.emails = JSON.stringify(collectEmails(node));
-
-  label.appendChild(checkbox);
-  label.appendChild(document.createTextNode(` ${node.name}`));
-  row.appendChild(label);
+  const groupLabel = document.createElement("label");
+  const groupCheckbox = document.createElement("input");
+  groupCheckbox.type = "checkbox";
+  groupCheckbox.className = "group-checkbox";
+  groupLabel.appendChild(groupCheckbox);
+  groupLabel.appendChild(document.createTextNode(` ${node.name}`));
+  row.appendChild(groupLabel);
   li.appendChild(row);
+
+  const emails = Array.isArray(node.emails) ? node.emails : [];
+  emails.forEach(email => {
+    const emailRow = document.createElement("div");
+    emailRow.className = "tree-row email-row";
+    const spacer = document.createElement("span");
+    spacer.className = "toggle-spacer";
+    emailRow.appendChild(spacer);
+
+    const emailLabel = document.createElement("label");
+    const emailCheckbox = document.createElement("input");
+    emailCheckbox.type = "checkbox";
+    emailCheckbox.className = "email-checkbox";
+    emailCheckbox.dataset.email = email;
+    emailLabel.appendChild(emailCheckbox);
+    emailLabel.appendChild(document.createTextNode(` ${email}`));
+    emailRow.appendChild(emailLabel);
+    li.appendChild(emailRow);
+  });
 
   if (hasChildren) {
     const ul = document.createElement("ul");
@@ -157,22 +191,10 @@ function createTreeNodeElement(node) {
   return li;
 }
 
-function collectEmails(node) {
-  let emails = [...(node.emails || [])];
-  if (node.children) {
-    node.children.forEach(child => {
-      emails.push(...collectEmails(child));
-    });
-  }
-  return [...new Set(emails)];
-}
-
 function getSelectedEmails() {
   const selected = new Set();
-  document.querySelectorAll("#treeContainer input[type='checkbox']:checked").forEach(cb => {
-    if (cb.dataset.emails) {
-      JSON.parse(cb.dataset.emails).forEach(email => selected.add(email));
-    }
+  document.querySelectorAll("#treeContainer .email-checkbox:checked").forEach(checkbox => {
+    if (checkbox.dataset.email) selected.add(checkbox.dataset.email);
   });
   return Array.from(selected);
 }
