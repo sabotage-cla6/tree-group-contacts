@@ -55,7 +55,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
 
-      const textToCopy = response.emails.join(", ");
+      const textToCopy = response.emails.map(formatRegisteredGuest).join(", ");
       try {
         await navigator.clipboard.writeText(textToCopy);
         showStatus(`${response.emails.length} 件のアドレスをコピーしました`, "success");
@@ -182,7 +182,11 @@ function createTreeNodeElement(node) {
   return li;
 }
 
-function createEmailTreeNode(email) {
+function createEmailTreeNode(entry) {
+  const member = parseMemberEntry(entry);
+  const email = member.email;
+  const displayName = member.name || email;
+  const copyValue = member.name ? `"${member.name}"<${email}>` : email;
   const li = document.createElement("li");
   li.className = "email-tree-node";
 
@@ -198,12 +202,41 @@ function createEmailTreeNode(email) {
   emailCheckbox.type = "checkbox";
   emailCheckbox.className = "email-checkbox";
   emailCheckbox.dataset.email = email;
+  emailCheckbox.dataset.copyValue = copyValue;
   emailLabel.appendChild(emailCheckbox);
-  emailLabel.appendChild(document.createTextNode(` ${email}`));
+  emailLabel.appendChild(document.createTextNode(` ${displayName}`));
+  if (member.name) emailLabel.title = email;
   row.appendChild(emailLabel);
 
   li.appendChild(row);
   return li;
+}
+
+function parseMemberEntry(value) {
+  const entry = String(value || "").trim();
+  const match = entry.match(/^"([^"]*)"\s*<([^<>]+)>$/);
+  if (match) return { name: match[1].trim(), email: match[2].trim() };
+  return { name: "", email: entry };
+}
+
+function formatRegisteredGuest(email) {
+  const target = String(email || "").trim().toLowerCase();
+  let formatted = email;
+  function visit(nodes) {
+    for (const node of nodes || []) {
+      for (const entry of Array.isArray(node.emails) ? node.emails : []) {
+        const member = parseMemberEntry(entry);
+        if (member.email.toLowerCase() === target && member.name) {
+          formatted = \`"\${member.name}"<\${member.email}>\`;
+          return true;
+        }
+      }
+      if (visit(node.children)) return true;
+    }
+    return false;
+  }
+  visit(groupTree);
+  return formatted;
 }
 
 function getSelectedEmails() {
