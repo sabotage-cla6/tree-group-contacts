@@ -162,6 +162,11 @@ function createTreeNodeElement(node) {
   groupCheckbox.type = "checkbox";
   groupCheckbox.className = "group-checkbox";
   groupLabel.appendChild(groupCheckbox);
+  const groupIcon = document.createElement("span");
+  groupIcon.className = "group-icon";
+  groupIcon.setAttribute("aria-hidden", "true");
+  groupIcon.textContent = "📁";
+  groupLabel.appendChild(groupIcon);
   groupLabel.appendChild(document.createTextNode(` ${node.name}`));
   row.appendChild(groupLabel);
   li.appendChild(row);
