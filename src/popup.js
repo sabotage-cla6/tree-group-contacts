@@ -141,9 +141,12 @@ function createTreeNodeElement(node) {
   const li = document.createElement("li");
   const row = document.createElement("div");
   row.className = "tree-row";
-  const hasChildren = node.children && node.children.length > 0;
 
-  if (hasChildren) {
+  const emails = Array.isArray(node.emails) ? node.emails : [];
+  const children = Array.isArray(node.children) ? node.children : [];
+  const hasTreeChildren = emails.length > 0 || children.length > 0;
+
+  if (hasTreeChildren) {
     const toggleBtn = document.createElement("span");
     toggleBtn.className = "toggle-btn";
     toggleBtn.textContent = "▼";
@@ -163,31 +166,38 @@ function createTreeNodeElement(node) {
   row.appendChild(groupLabel);
   li.appendChild(row);
 
-  const emails = Array.isArray(node.emails) ? node.emails : [];
-  emails.forEach(email => {
-    const emailRow = document.createElement("div");
-    emailRow.className = "tree-row email-row";
-    const spacer = document.createElement("span");
-    spacer.className = "toggle-spacer";
-    emailRow.appendChild(spacer);
-
-    const emailLabel = document.createElement("label");
-    const emailCheckbox = document.createElement("input");
-    emailCheckbox.type = "checkbox";
-    emailCheckbox.className = "email-checkbox";
-    emailCheckbox.dataset.email = email;
-    emailLabel.appendChild(emailCheckbox);
-    emailLabel.appendChild(document.createTextNode(` ${email}`));
-    emailRow.appendChild(emailLabel);
-    li.appendChild(emailRow);
-  });
-
-  if (hasChildren) {
+  // グループに直接登録されたメールアドレスも、ツリー配下の子要素として表示する。
+  if (hasTreeChildren) {
     const ul = document.createElement("ul");
-    node.children.forEach(child => ul.appendChild(createTreeNodeElement(child)));
+    emails.forEach(email => ul.appendChild(createEmailTreeNode(email)));
+    children.forEach(child => ul.appendChild(createTreeNodeElement(child)));
     li.appendChild(ul);
   }
 
+  return li;
+}
+
+function createEmailTreeNode(email) {
+  const li = document.createElement("li");
+  li.className = "email-tree-node";
+
+  const row = document.createElement("div");
+  row.className = "tree-row email-row";
+
+  const spacer = document.createElement("span");
+  spacer.className = "toggle-spacer";
+  row.appendChild(spacer);
+
+  const emailLabel = document.createElement("label");
+  const emailCheckbox = document.createElement("input");
+  emailCheckbox.type = "checkbox";
+  emailCheckbox.className = "email-checkbox";
+  emailCheckbox.dataset.email = email;
+  emailLabel.appendChild(emailCheckbox);
+  emailLabel.appendChild(document.createTextNode(` ${email}`));
+  row.appendChild(emailLabel);
+
+  li.appendChild(row);
   return li;
 }
 
