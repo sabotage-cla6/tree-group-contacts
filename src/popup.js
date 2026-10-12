@@ -214,8 +214,11 @@ function createEmailTreeNode(entry) {
 
 function parseMemberEntry(value) {
   const entry = String(value || "").trim();
-  const match = entry.match(/^"((?:\\.|[^"\\])*)"\s*<([^<>]+)>$/);
-  if (match) return { name: unescapeQuotedName(match[1]).trim(), email: match[2].trim() };
+  const match = entry.match(/^(?:"((?:\\.|[^"\\])*)"|([^<>"]+?))\s*<([^<>]+)>$/);
+  if (match) {
+    const name = match[1] !== undefined ? unescapeQuotedName(match[1]).trim() : match[2].trim();
+    return { name, email: match[3].trim() };
+  }
   return { name: "", email: entry };
 }
 
