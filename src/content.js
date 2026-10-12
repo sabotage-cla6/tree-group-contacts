@@ -17,10 +17,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 async function insertGuests(emails) {
   const uniqueEmails = Array.from(new Set((emails || []).filter(isValidEmailOrCalendarId)));
   let insertedCount = 0;
+  const initialGuestInput = findGuestInputElement();
+  if (!initialGuestInput) return 0;
+
+  // 詳細ダイアログ内で開始した場合、処理中も同じダイアログ内だけを操作する。
+  // ダイアログが閉じられたらトップ画面の別入力欄へ続けて入力しない。
+  const editorDialog = initialGuestInput.closest('[role="dialog"]');
 
   for (const email of uniqueEmails) {
-    // メンバー追加後にDOMが差し替わる画面があるため、毎回入力欄を探し直す。
-    const guestInput = findGuestInputElement();
+    if (editorDialog && (!editorDialog.isConnected || !isVisibleElement(editorDialog))) break;
+    // ゲスト追加後に入力欄が差し替わる場合があるため、同じ編集画面の中で探し直す。
+    const guestInput = findGuestInputElement(editorDialog || document);
     if (!guestInput) break;
 
     guestInput.focus();
@@ -73,7 +80,7 @@ function isVisibleElement(el) {
 
 // 予定のタイトル欄などに誤入力しないよう、ゲスト欄として識別できる入力欄だけを対象にする。
 // 「ユーザーを検索」はカレンダートップ画面にも存在し得るため、詳細ダイアログ内に限定する。
-function findGuestInputElement() {
+function findGuestInputElement(scope = null) {
   const selectors = [
     ['input[aria-label="ゲストを追加"]', 120],
     ['input[aria-label="Add guests"]', 120],
@@ -86,7 +93,7 @@ function findGuestInputElement() {
 
   const candidates = new Map();
   const dialogs = Array.from(document.querySelectorAll('[role="dialog"]')).filter(isVisibleElement);
-  const scopes = dialogs.length ? dialogs : [document];
+  const scopes = scope ? [scope] : (dialogs.length ? dialogs : [document]);
 
   scopes.forEach(scope => {
     selectors.forEach(([selector, score]) => {
@@ -101,7 +108,7 @@ function findGuestInputElement() {
 
   // Google カレンダーの一部画面ではゲスト欄が「ユーザーを検索」と表示される。
   // ただし、詳細ダイアログ内にある場合に限り候補にする。
-  dialogs.forEach(dialog => {
+  scopes.filter(item => item.matches?.('[role="dialog"]')).forEach(dialog => {
     dialog.querySelectorAll('input[aria-label="ユーザーを検索"]').forEach(el => {
       if (!isVisibleElement(el) || isClearlyNotGuestInput(el)) return;
       const score = 100 + (el === document.activeElement ? 200 : 0);
