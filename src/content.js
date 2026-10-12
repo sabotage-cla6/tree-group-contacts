@@ -86,31 +86,32 @@ function findGuestInputElement(scope = null) {
     ['input[aria-label="Add guests"]', 120],
     ['input[placeholder*="ゲストを追加"]', 110],
     ['input[placeholder*="Add guests"]', 110],
-    ['div[data-aria-label="ゲストを追加"] input', 105]
+    ['div[data-aria-label="ゲストを追加"] input', 105],
+    ['input[aria-label="ユーザーを検索"]', 95],
+    ['input.Fgl6fe-fmcmS-wGMbrd', 80],
+    ['input[jsname="YPqjbf"]', 75]
   ];
 
   const candidates = new Map();
-  const dialogs = Array.from(document.querySelectorAll('[role="dialog"]')).filter(isVisibleElement);
-  const scopes = scope ? [scope] : (dialogs.length ? dialogs : [document]);
-
-  scopes.forEach(scope => {
-    selectors.forEach(([selector, score]) => {
-      scope.querySelectorAll(selector).forEach(el => {
-        if (!isVisibleElement(el) || isClearlyNotGuestInput(el)) return;
-        const nextScore = score + (el === document.activeElement ? 200 : 0)
-          + (el.closest('[role="dialog"]') ? 20 : 0);
-        candidates.set(el, Math.max(candidates.get(el) || 0, nextScore));
-      });
-    });
-  });
-
-  // Google カレンダーの一部画面ではゲスト欄が「ユーザーを検索」と表示される。
-  // ただし、詳細ダイアログ内にある場合に限り候補にする。
-  scopes.filter(item => item.matches?.('[role="dialog"]')).forEach(dialog => {
-    dialog.querySelectorAll('input[aria-label="ユーザーを検索"]').forEach(el => {
+  const searchRoot = scope || document;
+  selectors.forEach(([selector, score]) => {
+    searchRoot.querySelectorAll(selector).forEach(el => {
       if (!isVisibleElement(el) || isClearlyNotGuestInput(el)) return;
-      const score = 100 + (el === document.activeElement ? 200 : 0);
-      candidates.set(el, Math.max(candidates.get(el) || 0, score));
+
+      // 汎用的なGoogleカレンダーの入力欄は、予定編集領域にある場合だけ候補にする。
+      const isSpecificGuestField = /ゲストを追加|add guests/i.test([
+        el.getAttribute('aria-label') || '',
+        el.getAttribute('placeholder') || '',
+        el.parentElement?.getAttribute('data-aria-label') || ''
+      ].join(' '));
+      const inDialog = Boolean(el.closest('[role="dialog"]'));
+      const inEventEditor = Boolean(el.closest('[data-eventid], [role="dialog"], [aria-label*="予定"], [aria-label*="event"]'));
+      const isFocused = el === document.activeElement;
+
+      if (!isSpecificGuestField && !inEventEditor && !inDialog && !isFocused) return;
+
+      const nextScore = score + (isFocused ? 200 : 0) + (inDialog ? 20 : 0);
+      candidates.set(el, Math.max(candidates.get(el) || 0, nextScore));
     });
   });
 
