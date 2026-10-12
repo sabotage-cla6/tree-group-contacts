@@ -15,7 +15,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 // Googleカレンダーの簡易作成画面・通常画面・予定の詳細編集画面に対応してゲストを追加する。
 async function insertGuests(emails) {
-  const uniqueEmails = Array.from(new Set((emails || []).filter(isValidEmailOrCalendarId)));
+  const uniqueEmails = Array.from(new Set((emails || []).map(extractEmailAddress).filter(isValidEmailOrCalendarId)));
   let insertedCount = 0;
   const initialGuestInput = findGuestInputElement();
   if (!initialGuestInput) return 0;
@@ -212,6 +212,12 @@ function extractGuestsFromPage() {
   }
 
   return Array.from(emails);
+}
+
+function extractEmailAddress(value) {
+  const entry = String(value || "").trim();
+  const match = entry.match(/^(?:"((?:\\.|[^"\\])*)"|([^<>"]+?))\s*<([^<>]+)>$/);
+  return match ? match[3].trim() : entry;
 }
 
 function isValidEmailOrCalendarId(str) {
