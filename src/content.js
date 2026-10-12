@@ -216,8 +216,8 @@ function extractGuestsFromPage() {
 
 function extractEmailAddress(value) {
   const entry = String(value || "").trim();
-  const match = entry.match(/^"((?:\\.|[^"\\])*)"\s*<([^<>]+)>$/);
-  return match ? match[2].trim() : entry;
+  const match = entry.match(/^(?:"((?:\\.|[^"\\])*)"|([^<>"]+?))\s*<([^<>]+)>$/);
+  return match ? match[3].trim() : entry;
 }
 
 function isValidEmailOrCalendarId(str) {
