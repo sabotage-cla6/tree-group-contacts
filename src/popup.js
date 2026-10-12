@@ -227,7 +227,7 @@ function formatRegisteredGuest(email) {
       for (const entry of Array.isArray(node.emails) ? node.emails : []) {
         const member = parseMemberEntry(entry);
         if (member.email.toLowerCase() === target && member.name) {
-          formatted = \`"\${member.name}"<\${member.email}>\`;
+          formatted = '"' + member.name + '"<' + member.email + '>';
           return true;
         }
       }
