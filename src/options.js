@@ -92,7 +92,20 @@ let selectionAnchorId = null;
     const title = event.target.closest(".tree-node-title");
     if (!title) return;
     const id = title.dataset.nodeId;
-    if (!selectedNodeIds.has(id)) handleSelection(id, {});
+    if (!selectedNodeIds.has(id)) {
+      selectedNodeIds = new Set([id]);
+      selectionAnchorId = id;
+      selectedNodeId = id;
+      updateEditor(id);
+      treeView.querySelectorAll(".tree-node-title").forEach(item => {
+        const isSelected = item.dataset.nodeId === id;
+        item.classList.toggle("selected", isSelected);
+        item.setAttribute("aria-selected", isSelected ? "true" : "false");
+      });
+      document.getElementById("selectionCount").textContent = "選択中: 1件";
+      document.getElementById("moveSelectedBtn").disabled = false;
+      updateMoveTargets();
+    }
     const ids = getSelectedRootIds();
     if (!ids.length) {
       event.preventDefault();
