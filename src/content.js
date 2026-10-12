@@ -79,9 +79,10 @@ function isVisibleElement(el) {
 }
 
 // 予定のタイトル欄などに誤入力しないよう、ゲスト欄として識別できる入力欄だけを対象にする。
-// 「ユーザーを検索」はカレンダートップ画面にも存在し得るため、詳細ダイアログ内に限定する。
+// トップ画面の簡易作成欄では、提示されたDOMの div[jsname="ZKadSc"] がゲスト入力領域を示す。
 function findGuestInputElement(scope = null) {
   const selectors = [
+    ['div[jsname="ZKadSc"] input[aria-label="ユーザーを検索"]', 150],
     ['input[aria-label="ゲストを追加"]', 120],
     ['input[aria-label="Add guests"]', 120],
     ['input[placeholder*="ゲストを追加"]', 110],
@@ -99,7 +100,8 @@ function findGuestInputElement(scope = null) {
       if (!isVisibleElement(el) || isClearlyNotGuestInput(el)) return;
 
       // 汎用的なGoogleカレンダーの入力欄は、予定編集領域にある場合だけ候補にする。
-      const isSpecificGuestField = /ゲストを追加|add guests/i.test([
+      const isTopPageGuestField = Boolean(el.matches('div[jsname="ZKadSc"] input[aria-label="ユーザーを検索"]'));
+      const isSpecificGuestField = isTopPageGuestField || /ゲストを追加|add guests/i.test([
         el.getAttribute('aria-label') || '',
         el.getAttribute('placeholder') || '',
         el.parentElement?.getAttribute('data-aria-label') || ''
