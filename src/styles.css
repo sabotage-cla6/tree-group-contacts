@@ -200,6 +200,17 @@ body.popup-body {
   width: 100%;
 }
 
+/* グループとメールアドレスを見分けやすくするフォルダーアイコン */
+.group-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  font-size: 14px;
+  line-height: 1;
+  margin-left: 1px;
+}
+
 .button-group {
   display: flex;
   flex-direction: column;
