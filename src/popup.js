@@ -186,7 +186,7 @@ function createEmailTreeNode(entry) {
   const member = parseMemberEntry(entry);
   const email = member.email;
   const displayName = member.name || email;
-  const copyValue = member.name ? `"${member.name}"<${email}>` : email;
+  const copyValue = member.name ? formatNamedMember(member.name, email) : email;
   const li = document.createElement("li");
   li.className = "email-tree-node";
 
@@ -214,9 +214,18 @@ function createEmailTreeNode(entry) {
 
 function parseMemberEntry(value) {
   const entry = String(value || "").trim();
-  const match = entry.match(/^"([^"]*)"\s*<([^<>]+)>$/);
-  if (match) return { name: match[1].trim(), email: match[2].trim() };
+  const match = entry.match(/^"((?:\\.|[^"\\])*)"\s*<([^<>]+)>$/);
+  if (match) return { name: unescapeQuotedName(match[1]).trim(), email: match[2].trim() };
   return { name: "", email: entry };
+}
+
+function unescapeQuotedName(name) {
+  return name.replace(/\\(["\\])/g, "$1");
+}
+
+function formatNamedMember(name, email) {
+  const escapedName = String(name).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  return `"${escapedName}"<${email}>`;
 }
 
 function formatRegisteredGuest(email, tree) {
@@ -227,7 +236,7 @@ function formatRegisteredGuest(email, tree) {
       for (const entry of Array.isArray(node.emails) ? node.emails : []) {
         const member = parseMemberEntry(entry);
         if (member.email.toLowerCase() === target && member.name) {
-          formatted = '"' + member.name + '"<' + member.email + '>';
+          formatted = formatNamedMember(member.name, member.email);
           return true;
         }
       }
