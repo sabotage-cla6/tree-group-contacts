@@ -71,33 +71,57 @@ function isVisibleElement(el) {
   return Boolean(el && (el.offsetWidth > 0 || el.offsetHeight > 0 || el.getClientRects().length > 0));
 }
 
-// 現在表示されている画面のゲスト入力欄を優先して検出する。
+// 予定のタイトル欄などに誤入力しないよう、ゲスト欄として識別できる入力欄だけを対象にする。
+// 「ユーザーを検索」はカレンダートップ画面にも存在し得るため、詳細ダイアログ内に限定する。
 function findGuestInputElement() {
   const selectors = [
-    ['input[aria-label="ユーザーを検索"]', 100],
-    ['div[role="dialog"] input[aria-label="ユーザーを検索"]', 105],
-    ['input[aria-label="ゲストを追加"]', 95],
-    ['input[aria-label="Add guests"]', 95],
-    ['input[placeholder*="ゲストを追加"]', 90],
-    ['input[placeholder*="Add guests"]', 90],
-    ['div[data-aria-label="ゲストを追加"] input', 85],
-    ['input.Fgl6fe-fmcmS-wGMbrd', 75],
-    ['input[jsname="YPqjbf"]', 75],
-    ['input[type="email"]', 10]
+    ['input[aria-label="ゲストを追加"]', 120],
+    ['input[aria-label="Add guests"]', 120],
+    ['input[placeholder*="ゲストを追加"]', 110],
+    ['input[placeholder*="Add guests"]', 110],
+    ['div[data-aria-label="ゲストを追加"] input', 105],
+    ['input.Fgl6fe-fmcmS-wGMbrd', 90],
+    ['input[jsname="YPqjbf"]', 85]
   ];
 
   const candidates = new Map();
-  selectors.forEach(([selector, score]) => {
-    document.querySelectorAll(selector).forEach(el => {
-      if (!isVisibleElement(el)) return;
-      const nextScore = score + (el === document.activeElement ? 200 : 0)
-        + (el.closest('[role="dialog"]') ? 15 : 0);
-      candidates.set(el, Math.max(candidates.get(el) || 0, nextScore));
+  const dialogs = Array.from(document.querySelectorAll('[role="dialog"]')).filter(isVisibleElement);
+  const scopes = dialogs.length ? dialogs : [document];
+
+  scopes.forEach(scope => {
+    selectors.forEach(([selector, score]) => {
+      scope.querySelectorAll(selector).forEach(el => {
+        if (!isVisibleElement(el) || isClearlyNotGuestInput(el)) return;
+        const nextScore = score + (el === document.activeElement ? 200 : 0)
+          + (el.closest('[role="dialog"]') ? 20 : 0);
+        candidates.set(el, Math.max(candidates.get(el) || 0, nextScore));
+      });
+    });
+  });
+
+  // Google カレンダーの一部画面ではゲスト欄が「ユーザーを検索」と表示される。
+  // ただし、詳細ダイアログ内にある場合に限り候補にする。
+  dialogs.forEach(dialog => {
+    dialog.querySelectorAll('input[aria-label="ユーザーを検索"]').forEach(el => {
+      if (!isVisibleElement(el) || isClearlyNotGuestInput(el)) return;
+      const score = 100 + (el === document.activeElement ? 200 : 0);
+      candidates.set(el, Math.max(candidates.get(el) || 0, score));
     });
   });
 
   return Array.from(candidates.entries())
     .sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+}
+
+function isClearlyNotGuestInput(el) {
+  const label = [
+    el.getAttribute('aria-label'),
+    el.getAttribute('placeholder'),
+    el.getAttribute('name'),
+    el.getAttribute('data-placeholder')
+  ].filter(Boolean).join(' ').toLowerCase();
+
+  return /タイトル|title|場所|location|説明|description|検索カレンダー|search calendar/.test(label);
 }
 
 // 入力したメールアドレスと一致する候補を探し、候補選択でユーザーを確定する。
