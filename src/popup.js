@@ -55,7 +55,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
 
-      const textToCopy = response.emails.map(formatRegisteredGuest).join(", ");
+      const textToCopy = response.emails.map(email => formatRegisteredGuest(email, groupTree)).join(", ");
       try {
         await navigator.clipboard.writeText(textToCopy);
         showStatus(`${response.emails.length} 件のアドレスをコピーしました`, "success");
@@ -219,7 +219,7 @@ function parseMemberEntry(value) {
   return { name: "", email: entry };
 }
 
-function formatRegisteredGuest(email) {
+function formatRegisteredGuest(email, tree) {
   const target = String(email || "").trim().toLowerCase();
   let formatted = email;
   function visit(nodes) {
@@ -235,7 +235,7 @@ function formatRegisteredGuest(email) {
     }
     return false;
   }
-  visit(groupTree);
+  visit(tree);
   return formatted;
 }
 
