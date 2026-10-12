@@ -2,7 +2,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "INSERT_GUESTS") {
     insertGuests(request.emails).then(count => {
       sendResponse({ success: count > 0, count: count });
-    });
+    }).catch(() => sendResponse({ success: false, count: 0 }));
     return true;
   }
 
@@ -13,64 +13,118 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 });
 
-// カレンダーにゲストを一括挿入（トップページの簡易モーダル＆詳細編集画面の両方に対応）
+// Googleカレンダーの簡易作成画面・通常画面・予定の詳細編集画面に対応してゲストを追加する。
 async function insertGuests(emails) {
-  const guestInput = findGuestInputElement();
-  if (!guestInput) return 0;
-
+  const uniqueEmails = Array.from(new Set((emails || []).filter(isValidEmailOrCalendarId)));
   let insertedCount = 0;
 
-  for (const email of emails) {
-    guestInput.focus();
-    guestInput.value = email;
+  for (const email of uniqueEmails) {
+    // メンバー追加後にDOMが差し替わる画面があるため、毎回入力欄を探し直す。
+    const guestInput = findGuestInputElement();
+    if (!guestInput) break;
 
-    // Google UIのデータバインディングを認識させるためのイベント発火
-    guestInput.dispatchEvent(new Event("input", { bubbles: true }));
+    guestInput.focus();
+    setInputValue(guestInput, email);
+    guestInput.dispatchEvent(new InputEvent("input", {
+      bubbles: true,
+      inputType: "insertText",
+      data: email
+    }));
     guestInput.dispatchEvent(new Event("change", { bubbles: true }));
 
-    await sleep(200);
+    // 簡易画面では候補を選択して「選択中のユーザー」に確定させる必要がある。
+    await sleep(500);
+    const suggestion = findEmailSuggestion(email);
+    if (suggestion) {
+      suggestion.click();
+      await sleep(350);
+      insertedCount++;
+      continue;
+    }
 
-    // Enterキーを押下して決定
-    const enterEvent = new KeyboardEvent("keydown", {
-      key: "Enter",
-      code: "Enter",
-      keyCode: 13,
-      which: 13,
-      bubbles: true
-    });
-    guestInput.dispatchEvent(enterEvent);
+    // 候補が表示されない画面では、Enterでメールアドレスを確定する。
+    guestInput.dispatchEvent(new KeyboardEvent("keydown", {
+      key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true
+    }));
+    guestInput.dispatchEvent(new KeyboardEvent("keyup", {
+      key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true
+    }));
+    await sleep(350);
 
-    await sleep(300);
-    insertedCount++;
+    // 入力値がクリアされた場合は、Googleカレンダーがゲストとして受け付けたとみなす。
+    if (guestInput.value === "" || guestInput.value !== email) {
+      insertedCount++;
+    }
   }
 
   return insertedCount;
 }
 
-// カレンダー上のゲスト入力欄を検出（トップページの「ユーザーを検索」・詳細画面の「ゲストを追加」に対応）
+function setInputValue(input, value) {
+  // React等の制御された入力欄でも変更を検知できるよう、ネイティブsetterを使う。
+  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+  if (setter) setter.call(input, value);
+  else input.value = value;
+}
+
+function isVisibleElement(el) {
+  return Boolean(el && (el.offsetWidth > 0 || el.offsetHeight > 0 || el.getClientRects().length > 0));
+}
+
+// 現在表示されている画面のゲスト入力欄を優先して検出する。
 function findGuestInputElement() {
   const selectors = [
-    // --- 1. トップページ簡易ダイアログ用の入力欄 ---
-    'input[aria-label="ユーザーを検索"]',
-    'input.Fgl6fe-fmcmS-wGMbrd',
-    'input[jsname="YPqjbf"]',
-    'div[role="dialog"] input[aria-label="ユーザーを検索"]',
-    
-    // --- 2. 詳細編集画面および既存の各種ゲスト入力欄 ---
-    'input[aria-label="ゲストを追加"]',
-    'input[placeholder*="ゲストを追加"]',
-    'input[aria-label="Add guests"]',
-    'input[placeholder*="Add guests"]',
-    'div[data-aria-label="ゲストを追加"] input',
-    'div[role="dialog"] input[aria-label="ゲストを追加"]',
-    'div[role="dialog"] input[aria-label="Add guests"]',
-    'input[type="email"]'
+    ['input[aria-label="ユーザーを検索"]', 100],
+    ['div[role="dialog"] input[aria-label="ユーザーを検索"]', 105],
+    ['input[aria-label="ゲストを追加"]', 95],
+    ['input[aria-label="Add guests"]', 95],
+    ['input[placeholder*="ゲストを追加"]', 90],
+    ['input[placeholder*="Add guests"]', 90],
+    ['div[data-aria-label="ゲストを追加"] input', 85],
+    ['input.Fgl6fe-fmcmS-wGMbrd', 75],
+    ['input[jsname="YPqjbf"]', 75],
+    ['input[type="email"]', 10]
   ];
 
-  for (const selector of selectors) {
-    const el = document.querySelector(selector);
-    if (el && (el.offsetWidth > 0 || el.offsetHeight > 0 || el.getClientRects().length > 0)) {
-      return el;
+  const candidates = new Map();
+  selectors.forEach(([selector, score]) => {
+    document.querySelectorAll(selector).forEach(el => {
+      if (!isVisibleElement(el)) return;
+      const nextScore = score + (el === document.activeElement ? 200 : 0)
+        + (el.closest('[role="dialog"]') ? 15 : 0);
+      candidates.set(el, Math.max(candidates.get(el) || 0, nextScore));
+    });
+  });
+
+  return Array.from(candidates.entries())
+    .sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+}
+
+// 入力したメールアドレスと一致する候補を探し、候補選択でユーザーを確定する。
+function findEmailSuggestion(email) {
+  const normalizedEmail = email.toLowerCase();
+  const selectors = [
+    '[role="option"]',
+    '[role="listbox"] [data-email]',
+    '[role="listbox"] [data-hovercard-id]',
+    '[role="listbox"] li'
+  ];
+  const candidates = new Set();
+  selectors.forEach(selector => {
+    document.querySelectorAll(selector).forEach(el => {
+      if (isVisibleElement(el)) candidates.add(el);
+    });
+  });
+
+  for (const candidate of candidates) {
+    const candidateEmail = (
+      candidate.getAttribute("data-email") ||
+      candidate.getAttribute("data-hovercard-id") ||
+      ""
+    ).toLowerCase();
+    const text = (candidate.innerText || candidate.textContent || "").toLowerCase();
+    if (candidateEmail === normalizedEmail || text.includes(normalizedEmail)) {
+      return candidate.closest('[role="option"]') || candidate;
     }
   }
   return null;
