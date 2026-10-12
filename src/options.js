@@ -206,15 +206,24 @@ function parseMemberEntries(text) {
     const entry = value.trim();
     if (!entry) return "";
     const parsed = parseMemberEntry(entry);
-    return parsed.name ? '"' + parsed.name + '"<' + parsed.email + '>' : parsed.email;
+    return parsed.name ? formatNamedMember(parsed.name, parsed.email) : parsed.email;
   }).filter(Boolean);
 }
 
 function parseMemberEntry(value) {
   const entry = String(value || "").trim();
-  const match = entry.match(/^"([^"]*)"\s*<([^<>]+)>$/);
-  if (match) return { name: match[1].trim(), email: match[2].trim() };
+  const match = entry.match(/^"((?:\\.|[^"\\])*)"\s*<([^<>]+)>$/);
+  if (match) return { name: unescapeQuotedName(match[1]).trim(), email: match[2].trim() };
   return { name: "", email: entry };
+}
+
+function unescapeQuotedName(name) {
+  return name.replace(/\\(["\\])/g, "$1");
+}
+
+function formatNamedMember(name, email) {
+  const escapedName = String(name).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  return `"${escapedName}"<${email}>`;
 }
 
 function getDefaultData() {
