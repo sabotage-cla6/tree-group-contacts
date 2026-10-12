@@ -206,7 +206,7 @@ function parseMemberEntries(text) {
     const entry = value.trim();
     if (!entry) return "";
     const parsed = parseMemberEntry(entry);
-    return parsed.name ? \`"\${parsed.name}"<\${parsed.email}>\` : parsed.email;
+    return parsed.name ? '"' + parsed.name + '"<' + parsed.email + '>' : parsed.email;
   }).filter(Boolean);
 }
 
