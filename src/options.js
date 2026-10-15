@@ -182,8 +182,8 @@ let selectionAnchorId = null;
           alert("有効なグループデータ（配列形式）ではありません。");
           return;
         }
-        if (confirm("現在のグループ設定を読み込んだJSONデータで上書きしますか？")) {
-          groupTree = importedData;
+        if (confirm("現在のグループ設定に読み込んだJSONデータをマージしますか？")) {
+          groupTree = mergeGroupTrees(groupTree, importedData);
           selectedNodeId = null;
           selectedNodeIds.clear();
           selectionAnchorId = null;
@@ -503,4 +503,59 @@ function showToast(message) {
   toast.textContent = message;
   toast.classList.add("show");
   setTimeout(() => toast.classList.remove("show"), 2000);
+}
+
+/**
+ * 既存の設定を保持したまま、インポートしたグループを再帰的にマージする。
+ * 同じIDのグループは統合し、名前はインポート側を優先する。
+ * メールアドレスは重複を避け、インポート側に表示名があればそれを反映する。
+ */
+function mergeGroupTrees(existingNodes, importedNodes) {
+  const cloneNode = (node) => ({
+    ...node,
+    emails: Array.isArray(node.emails) ? [...node.emails] : [],
+    children: Array.isArray(node.children) ? node.children.map(cloneNode) : []
+  });
+  const merged = (Array.isArray(existingNodes) ? existingNodes : []).map(cloneNode);
+
+  for (const imported of (Array.isArray(importedNodes) ? importedNodes : [])) {
+    if (!imported || typeof imported !== "object") continue;
+    const index = imported.id
+      ? merged.findIndex(existing => existing.id === imported.id)
+      : -1;
+
+    if (index < 0) {
+      merged.push(cloneNode(imported));
+      continue;
+    }
+
+    const existing = merged[index];
+    if (typeof imported.name === "string" && imported.name.trim()) {
+      existing.name = imported.name;
+    }
+
+    const emailIndex = new Map();
+    existing.emails.forEach((entry, i) => {
+      const email = parseMemberEntry(entry).email.trim().toLowerCase();
+      if (email) emailIndex.set(email, i);
+    });
+    for (const entry of (Array.isArray(imported.emails) ? imported.emails : [])) {
+      const parsed = parseMemberEntry(entry);
+      const key = parsed.email.trim().toLowerCase();
+      if (!key) continue;
+      if (emailIndex.has(key)) {
+        const currentIndex = emailIndex.get(key);
+        const current = parseMemberEntry(existing.emails[currentIndex]);
+        if (parsed.name) existing.emails[currentIndex] = entry;
+        else if (!current.email) existing.emails[currentIndex] = entry;
+      } else {
+        emailIndex.set(key, existing.emails.length);
+        existing.emails.push(entry);
+      }
+    }
+
+    existing.children = mergeGroupTrees(existing.children, imported.children);
+  }
+
+  return merged;
 }

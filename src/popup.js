@@ -149,7 +149,7 @@ function createTreeNodeElement(node) {
   if (hasTreeChildren) {
     const toggleBtn = document.createElement("span");
     toggleBtn.className = "toggle-btn";
-    toggleBtn.textContent = "▼";
+    toggleBtn.textContent = "▶";
     row.appendChild(toggleBtn);
   } else {
     const spacer = document.createElement("span");
@@ -174,6 +174,7 @@ function createTreeNodeElement(node) {
   // グループに直接登録されたメールアドレスも、ツリー配下の子要素として表示する。
   if (hasTreeChildren) {
     const ul = document.createElement("ul");
+    ul.className = "collapsed";
     emails.forEach(email => ul.appendChild(createEmailTreeNode(email)));
     children.forEach(child => ul.appendChild(createTreeNodeElement(child)));
     li.appendChild(ul);
