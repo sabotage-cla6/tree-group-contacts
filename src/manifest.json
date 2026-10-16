@@ -1,11 +1,10 @@
 {
   "manifest_version": 3,
   "name": "Tree-Group",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Googleの連絡先を階層構造を持ったグループとして管理するための拡張機能。現時点では、カレンダーへのゲストの入力のヘルパーとして機能する。今後はコンタクトをグループとして管理するためにラベル設定などの機能を追加予定。",
   "permissions": [
     "storage",
-    "activeTab",
     "clipboardWrite"
   ],
   "host_permissions": [
