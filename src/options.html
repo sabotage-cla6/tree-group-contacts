@@ -43,9 +43,9 @@
           <input type="text" id="groupName" class="input-text" placeholder="例: 開発部">
         </div>
         <div class="form-group">
-          <label for="groupEmails">登録メンバー <span class="label-note">(1行に1件)</span></label>
-          <textarea id="groupEmails" rows="10" class="textarea-emails" placeholder="alice@example.com&#10;山田 太郎&lt;tanaka@example.com&gt;"></textarea>
-          <p class="label-note">登録名を表示したい場合は 登録名&lt;メールアドレス&gt; の形式で入力してください。1行に1件ずつ入力してください。</p>
+          <label for="groupEmails">登録メンバー <span class="label-note">(改行またはカンマ区切り)</span></label>
+          <textarea id="groupEmails" rows="10" class="textarea-emails" placeholder="alice@example.com&#10;&quot;山田 太郎&quot;&lt;tanaka@example.com&gt;"></textarea>
+          <p class="label-note">登録名を表示したい場合は &quot;登録名&quot;&lt;メールアドレス&gt; の形式で入力してください。</p>
         </div>
         <div class="pane-actions">
           <button id="deleteGroupBtn" class="btn danger">このグループを削除</button>
