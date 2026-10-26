@@ -27,7 +27,7 @@ async function insertGuests(emails) {
 
   // Google カレンダーのゲスト欄はカンマ区切りのアドレスをまとめて受け付けるため、
   // 1件ずつ入力・確定せず、選択されたアドレスを一度に入力して確定する。
-  const batchValue = uniqueEmails.join(", ");
+  const batchValue = uniqueEmails.join("\r\n");
   guestInput.focus();
   setInputValue(guestInput, batchValue);
   guestInput.dispatchEvent(new InputEvent("input", {
