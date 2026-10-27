@@ -257,7 +257,7 @@ function formatRegisteredGuest(email, tree) {
 
 function getSelectedEmails() {
   const selected = new Set();
-  document.querySelectorAll("#treeContainer .email-checkbox:checked").forEach(checkbox => {
+  document.querySelectorAll("#treeContainer .email-checkbox:checked, #favoritesContainer .email-checkbox:checked").forEach(checkbox => {
     if (checkbox.dataset.email) selected.add(checkbox.dataset.email);
   });
   return Array.from(selected);
