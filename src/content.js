@@ -74,18 +74,13 @@ async function insertGuests(emails) {
     await sleep(500);
     if (editorDialog && (!editorDialog.isConnected || !isVisibleElement(editorDialog))) break;
 
-    // 一致するメールアドレスの候補があればそれを選択し、なければ入力した1件だけをEnterで確定する。
-    const suggestion = findEmailSuggestion(email);
-    if (suggestion) {
-      suggestion.click();
-    } else {
-      input.dispatchEvent(new KeyboardEvent("keydown", {
-        key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true
-      }));
-      input.dispatchEvent(new KeyboardEvent("keyup", {
-        key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true
-      }));
-    }
+    // 予定の登録・詳細編集画面では、入力したメールアドレスをそのままEnterで確定する。
+    input.dispatchEvent(new KeyboardEvent("keydown", {
+      key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true
+    }));
+    input.dispatchEvent(new KeyboardEvent("keyup", {
+      key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true
+    }));
 
     await sleep(350);
     const currentInput = findGuestInputElement(editorDialog);
