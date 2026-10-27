@@ -546,3 +546,40 @@ body.options-body {
   user-select: none;
   cursor: pointer;
 }
+
+
+/* お気に入りグループ */
+.popup-section-title {
+  margin: 10px 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-sub);
+}
+.favorites-container {
+  height: auto;
+  max-height: 160px;
+  min-height: 30px;
+}
+.options-tree-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.options-tree-row .tree-node-title {
+  flex: 1;
+  min-width: 0;
+}
+.favorite-toggle {
+  flex: 0 0 32px;
+  width: 32px;
+  border: 0;
+  background: transparent;
+  color: #9aa0a6;
+  font-size: 21px;
+  line-height: 1;
+  padding: 4px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+.favorite-toggle:hover { background: var(--color-bg-hover); }
+.favorite-toggle.is-favorite { color: #f9ab00; }
