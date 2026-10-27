@@ -25,33 +25,74 @@ async function insertGuests(emails) {
   const editorDialog = guestInput.closest('[role="dialog"]');
   if (editorDialog && (!editorDialog.isConnected || !isVisibleElement(editorDialog))) return 0;
 
-  // Google カレンダーのゲスト欄はカンマ区切りのアドレスをまとめて受け付けるため、
-  // 1件ずつ入力・確定せず、選択されたアドレスを一度に入力して確定する。
-  const batchValue = uniqueEmails.join(", ");
-  guestInput.focus();
-  setInputValue(guestInput, batchValue);
-  guestInput.dispatchEvent(new InputEvent("input", {
-    bubbles: true,
-    inputType: "insertText",
-    data: batchValue
-  }));
-  guestInput.dispatchEvent(new Event("change", { bubbles: true }));
+  // カレンダーのトップ画面にある簡易作成欄だけは、複数アドレスをカンマ区切りで一括入力する。
+  const isQuickCreateGuestInput = guestInput.matches('div[jsname="ZKadSc"] input[aria-label="ユーザーを検索"]');
+  if (isQuickCreateGuestInput) {
+    const batchValue = uniqueEmails.join(", ");
+    guestInput.focus();
+    setInputValue(guestInput, batchValue);
+    guestInput.dispatchEvent(new InputEvent("input", {
+      bubbles: true,
+      inputType: "insertText",
+      data: batchValue
+    }));
+    guestInput.dispatchEvent(new Event("change", { bubbles: true }));
 
-  await sleep(500);
-  if (editorDialog && (!editorDialog.isConnected || !isVisibleElement(editorDialog))) return 0;
+    await sleep(500);
+    if (editorDialog && (!editorDialog.isConnected || !isVisibleElement(editorDialog))) return 0;
 
-  guestInput.dispatchEvent(new KeyboardEvent("keydown", {
-    key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true
-  }));
-  guestInput.dispatchEvent(new KeyboardEvent("keyup", {
-    key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true
-  }));
+    guestInput.dispatchEvent(new KeyboardEvent("keydown", {
+      key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true
+    }));
+    guestInput.dispatchEvent(new KeyboardEvent("keyup", {
+      key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true
+    }));
 
-  await sleep(500);
+    await sleep(500);
+    return guestInput.value === "" || guestInput.value !== batchValue ? uniqueEmails.length : 0;
+  }
 
-  // 入力欄がクリアされたか、入力値が変化した場合はカレンダー側が確定処理を行ったとみなす。
-  // 一括入力では入力欄が残る画面もあるため、Enter送信後は一括処理した件数を返す。
-  return guestInput.value === "" || guestInput.value !== batchValue ? uniqueEmails.length : 0;
+  // 予定の登録・詳細編集画面では、複数アドレスをカンマ区切りで渡すと
+  // サジェストが誤選択されることがあるため、1件ずつ入力して確定する。
+  let addedCount = 0;
+  for (const email of uniqueEmails) {
+    if (editorDialog && (!editorDialog.isConnected || !isVisibleElement(editorDialog))) break;
+
+    // Google カレンダーが入力欄を再描画する場合に備え、各アドレスの処理ごとに取得し直す。
+    const input = findGuestInputElement(editorDialog);
+    if (!input) break;
+
+    input.focus();
+    setInputValue(input, email);
+    input.dispatchEvent(new InputEvent("input", {
+      bubbles: true,
+      inputType: "insertText",
+      data: email
+    }));
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+
+    await sleep(500);
+    if (editorDialog && (!editorDialog.isConnected || !isVisibleElement(editorDialog))) break;
+
+    // 予定の登録・詳細編集画面では、入力したメールアドレスをそのままEnterで確定する。
+    input.dispatchEvent(new KeyboardEvent("keydown", {
+      key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true
+    }));
+    input.dispatchEvent(new KeyboardEvent("keyup", {
+      key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true
+    }));
+
+    await sleep(350);
+    const currentInput = findGuestInputElement(editorDialog);
+    if (!currentInput || currentInput.value === "" || currentInput.value !== email) {
+      addedCount++;
+    } else {
+      // 入力が残っている場合は、次のアドレスで上書きしないよう中断する。
+      break;
+    }
+  }
+
+  return addedCount;
 }
 
 function setInputValue(input, value) {
