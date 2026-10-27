@@ -202,7 +202,7 @@ let selectionAnchorId = null;
 });
 
 function parseMemberEntries(text) {
-  return text.split(/[\n,]/).map(value => {
+  return text.split(/\r?\n/).map(value => {
     const entry = value.trim();
     if (!entry) return "";
     const parsed = parseMemberEntry(entry);
