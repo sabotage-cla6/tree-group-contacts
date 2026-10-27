@@ -62,7 +62,19 @@ let selectionAnchorId = null;
     await moveSelectedGroups(targetId, targetId ? "inside" : "root");
   });
 
-  treeView.addEventListener("click", (event) => {
+  treeView.addEventListener("click", async (event) => {
+    const favoriteButton = event.target.closest(".favorite-toggle");
+    if (favoriteButton && treeView.contains(favoriteButton)) {
+      event.preventDefault();
+      event.stopPropagation();
+      const node = findNode(groupTree, favoriteButton.dataset.nodeId);
+      if (!node) return;
+      node.favorite = node.favorite !== true;
+      await chrome.storage.local.set({ groupTree });
+      renderTree();
+      showToast(node.favorite ? "お気に入りに登録しました" : "お気に入りを解除しました");
+      return;
+    }
     const title = event.target.closest(".tree-node-title");
     if (!title || !treeView.contains(title)) return;
     handleSelection(title.dataset.nodeId, event);
@@ -269,7 +281,18 @@ function createTreeItem(node) {
   title.setAttribute("aria-selected", selectedNodeIds.has(node.id) ? "true" : "false");
   title.tabIndex = 0;
   title.draggable = true;
-  li.appendChild(title);
+  const row = document.createElement("div");
+  row.className = "options-tree-row";
+  row.appendChild(title);
+  const favoriteButton = document.createElement("button");
+  favoriteButton.type = "button";
+  favoriteButton.className = "favorite-toggle" + (node.favorite === true ? " is-favorite" : "");
+  favoriteButton.dataset.nodeId = node.id;
+  favoriteButton.textContent = node.favorite === true ? "★" : "☆";
+  favoriteButton.title = node.favorite === true ? "お気に入りを解除" : "お気に入りに登録";
+  favoriteButton.setAttribute("aria-label", favoriteButton.title);
+  row.appendChild(favoriteButton);
+  li.appendChild(row);
   const children = Array.isArray(node.children) ? node.children : [];
   if (children.length) {
     const ul = document.createElement("ul");
