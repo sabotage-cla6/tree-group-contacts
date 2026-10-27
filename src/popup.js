@@ -1,5 +1,6 @@
 document.addEventListener("DOMContentLoaded", async () => {
   const treeContainer = document.getElementById("treeContainer");
+  const favoritesContainer = document.getElementById("favoritesContainer");
   const addGuestsBtn = document.getElementById("addGuestsBtn");
   const copyGuestsBtn = document.getElementById("copyGuestsBtn");
   const openOptionsBtn = document.getElementById("openOptionsBtn");
@@ -8,7 +9,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   const storage = await chrome.storage.local.get("groupTree");
   const groupTree = storage.groupTree || getDefaultData();
 
-  renderTree(groupTree, treeContainer);
+  const favoriteGroups = getFavoriteGroups(groupTree);
+  renderTree(favoriteGroups, favoritesContainer, true);
+  renderTree(groupTree, treeContainer, false);
 
   openOptionsBtn.addEventListener("click", () => {
     chrome.runtime.openOptionsPage();
@@ -91,11 +94,11 @@ function getDefaultData() {
   ];
 }
 
-function renderTree(nodes, container) {
+function renderTree(nodes, container, expandedInitially = false) {
   container.innerHTML = "";
   const ul = document.createElement("ul");
   ul.className = "tree-root";
-  nodes.forEach(node => ul.appendChild(createTreeNodeElement(node)));
+  nodes.forEach(node => ul.appendChild(createTreeNodeElement(node, expandedInitially)));
   container.appendChild(ul);
 
   container.addEventListener("change", (event) => {
@@ -137,7 +140,7 @@ function syncAncestorGroups(startLi) {
   }
 }
 
-function createTreeNodeElement(node) {
+function createTreeNodeElement(node, expandedInitially = false) {
   const li = document.createElement("li");
   const row = document.createElement("div");
   row.className = "tree-row";
@@ -149,7 +152,7 @@ function createTreeNodeElement(node) {
   if (hasTreeChildren) {
     const toggleBtn = document.createElement("span");
     toggleBtn.className = "toggle-btn";
-    toggleBtn.textContent = "▶";
+    toggleBtn.textContent = expandedInitially ? "▼" : "▶";
     row.appendChild(toggleBtn);
   } else {
     const spacer = document.createElement("span");
@@ -174,9 +177,9 @@ function createTreeNodeElement(node) {
   // グループに直接登録されたメールアドレスも、ツリー配下の子要素として表示する。
   if (hasTreeChildren) {
     const ul = document.createElement("ul");
-    ul.className = "collapsed";
+    ul.className = expandedInitially ? "" : "collapsed";
     emails.forEach(email => ul.appendChild(createEmailTreeNode(email)));
-    children.forEach(child => ul.appendChild(createTreeNodeElement(child)));
+    children.forEach(child => ul.appendChild(createTreeNodeElement(child, expandedInitially)));
     li.appendChild(ul);
   }
 
@@ -258,4 +261,17 @@ function getSelectedEmails() {
     if (checkbox.dataset.email) selected.add(checkbox.dataset.email);
   });
   return Array.from(selected);
+}
+
+
+function getFavoriteGroups(nodes) {
+  const favorites = [];
+  function visit(items) {
+    (items || []).forEach(node => {
+      if (node.favorite === true) favorites.push(node);
+      visit(node.children);
+    });
+  }
+  visit(nodes);
+  return favorites;
 }
