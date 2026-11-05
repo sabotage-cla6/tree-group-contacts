@@ -2,6 +2,7 @@ let groupTree = [];
 let selectedNodeId = null;
 let selectedNodeIds = new Set();
 let selectionAnchorId = null;
+const expandedNodeIds = new Set();
 
  document.addEventListener("DOMContentLoaded", async () => {
   const storage = await chrome.storage.local.get("groupTree");
@@ -63,6 +64,20 @@ let selectionAnchorId = null;
   });
 
   treeView.addEventListener("click", async (event) => {
+    const collapseButton = event.target.closest(".tree-collapse-toggle");
+    if (collapseButton && treeView.contains(collapseButton)) {
+      event.preventDefault();
+      event.stopPropagation();
+      const nodeId = collapseButton.dataset.nodeId;
+      const childList = collapseButton.closest("li").querySelector(":scope > ul");
+      if (!childList) return;
+      if (expandedNodeIds.has(nodeId)) expandedNodeIds.delete(nodeId);
+      else expandedNodeIds.add(nodeId);
+      childList.classList.toggle("collapsed", !expandedNodeIds.has(nodeId));
+      collapseButton.textContent = expandedNodeIds.has(nodeId) ? "▼" : "▶";
+      collapseButton.setAttribute("aria-expanded", expandedNodeIds.has(nodeId) ? "true" : "false");
+      return;
+    }
     const favoriteButton = event.target.closest(".favorite-toggle");
     if (favoriteButton && treeView.contains(favoriteButton)) {
       event.preventDefault();
@@ -142,7 +157,7 @@ let selectionAnchorId = null;
     });
     const li = event.target.closest("li[data-node-id]");
     if (!li || !treeView.contains(li)) return;
-    const row = li.querySelector(":scope > .tree-node-title");
+    const row = li.querySelector(":scope > .options-tree-row");
     const rect = (row || li).getBoundingClientRect();
     const ratio = (event.clientY - rect.top) / Math.max(rect.height, 1);
     li.classList.add(ratio < 0.25 ? "drop-before" : ratio > 0.75 ? "drop-after" : "drop-inside");
@@ -162,7 +177,7 @@ let selectionAnchorId = null;
       await moveGroups(ids, null, "root");
       return;
     }
-    const row = li.querySelector(":scope > .tree-node-title");
+    const row = li.querySelector(":scope > .options-tree-row");
     const rect = (row || li).getBoundingClientRect();
     const ratio = (event.clientY - rect.top) / Math.max(rect.height, 1);
     const placement = ratio < 0.25 ? "before" : ratio > 0.75 ? "after" : "inside";
@@ -283,6 +298,22 @@ function createTreeItem(node) {
   title.draggable = true;
   const row = document.createElement("div");
   row.className = "options-tree-row";
+  const children = Array.isArray(node.children) ? node.children : [];
+  if (children.length) {
+    const collapseButton = document.createElement("button");
+    collapseButton.type = "button";
+    collapseButton.className = "tree-collapse-toggle";
+    collapseButton.dataset.nodeId = node.id;
+    const expanded = expandedNodeIds.has(node.id);
+    collapseButton.textContent = expanded ? "▼" : "▶";
+    collapseButton.setAttribute("aria-label", expanded ? "グループを折りたたむ" : "グループを展開");
+    collapseButton.setAttribute("aria-expanded", expanded ? "true" : "false");
+    row.appendChild(collapseButton);
+  } else {
+    const spacer = document.createElement("span");
+    spacer.className = "tree-collapse-spacer";
+    row.appendChild(spacer);
+  }
   row.appendChild(title);
   const favoriteButton = document.createElement("button");
   favoriteButton.type = "button";
@@ -293,10 +324,10 @@ function createTreeItem(node) {
   favoriteButton.setAttribute("aria-label", favoriteButton.title);
   row.appendChild(favoriteButton);
   li.appendChild(row);
-  const children = Array.isArray(node.children) ? node.children : [];
   if (children.length) {
     const ul = document.createElement("ul");
     ul.setAttribute("role", "group");
+    if (!expandedNodeIds.has(node.id)) ul.classList.add("collapsed");
     children.forEach(child => ul.appendChild(createTreeItem(child)));
     li.appendChild(ul);
   }
