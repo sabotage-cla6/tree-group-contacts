@@ -10,7 +10,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const groupTree = storage.groupTree || getDefaultData();
 
   const favoriteGroups = getFavoriteGroups(groupTree);
-  renderTree(favoriteGroups, favoritesContainer, true);
+  renderTree(favoriteGroups, favoritesContainer, false);
   renderTree(groupTree, treeContainer, false);
 
   openOptionsBtn.addEventListener("click", () => {
