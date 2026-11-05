@@ -38,6 +38,7 @@ const expandedNodeIds = new Set();
     const childNode = { id: "node_" + Date.now(), name: "新規サブグループ", emails: [], children: [] };
     if (!Array.isArray(parentNode.children)) parentNode.children = [];
     parentNode.children.push(childNode);
+    expandedNodeIds.add(parentNode.id);
     selectedNodeIds = new Set([childNode.id]);
     selectionAnchorId = childNode.id;
     selectedNodeId = childNode.id;
